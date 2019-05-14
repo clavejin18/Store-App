@@ -1,4 +1,4 @@
-sku,product_name,department_name,price,product_quantity
+sku,Product Name,Department Name,Price,Stock Quantity
 5850905,PlayStation 4,Gaming Consoles,299.99,150
 6344118,Xbox One S,Gaming Consoles,249.99,150
 5670100,Nintendo Switch,Gaming Consoles,299.99,150
