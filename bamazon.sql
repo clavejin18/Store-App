@@ -16,5 +16,6 @@ CREATE TABLE products (
     stock_quantity INT NOT NULL,
     PRIMARY KEY(sku)
 );
--- ingesting file
-SELECT * FROM amazonDB.products;
+
+-- Selecting from table
+SELECT*FROM products
