@@ -9,8 +9,9 @@ const { table } = require('table');
 let stream = fs.createReadStream("products.csv");
 console.log("Loading csv file into bamazonDB");
 
-//Parsing CSV module 
+//Parsing CSV module and setting variables
 let productArray = [];
+let chosenProduct = [];
 let csvStream = csv.parse().on("data", function (data) {
     productArray.push(data);
 }).on("end", function () {
@@ -35,15 +36,21 @@ let csvStream = csv.parse().on("data", function (data) {
             connection.query(query, [productArray], (error, response) => {
                 console.log(error || response);
                 console.log("csv file has been loaded!");
+                // Pausing stream
+                csvStream.pause();
+                // Required functions
                 displayCurrentItems();
+                customerQuestions();
             });
         }
     });
     // Functions
     function displayCurrentItems() {
         console.log("The following products are available")
-        connection.query('SELECT*FROM products;', function (error, results) {
-            if (error) throw error;
+        var header = [["sku", "Product", "Department", "Price", "Quantity"]];
+        connection.query('SELECT*FROM products;', function (err, results) {
+            // Catch any errors
+            if (err) throw error;
             for (let row of results) {
                 displayRow = [];
                 displayRow.push(row.sku);
@@ -51,11 +58,50 @@ let csvStream = csv.parse().on("data", function (data) {
                 displayRow.push(row.department_name);
                 displayRow.push(row.price);
                 displayRow.push(row.stock_quantity);
-                productArray.push(displayRow);
+                header.push(displayRow);
             }
-            output = table(productArray);
+            output = table(header);
             console.log(output);
+        });
+    }
+    function customerQuestions() {
+        connection.query('SELECT product_name FROM products;', function (err, results){
+            // Catching errors
+            if (err) throw error;
+            for (let product of results) {
+                chosenProduct.push(product.product_name);
+            }
         })
+        inquirer.prompt([
+            {
+                name: "purchase",
+                message: "Would you like to buy a product?",
+                type: "confirm"
+            }            
+        ]).then(answers => {
+            if (answers.purchase) {
+                inquirer.prompt ([
+                    {
+                        name: "product",
+                        message: "Which product would you like to purchase?",
+                        type: "list",
+                        choices: chosenProduct
+                    },
+                    {
+                        name: "quantity",
+                        message: "How many items would you like to buy?",
+                        type: "input",
+                        validate: function(input) {
+                            if (isNaN(input) === true) {
+                                return "A number must be entered.";
+                            }
+                            return true;
+                        }
+                    }
+                ])
+            }
+        });
+        
     }
 });
 stream.pipe(csvStream);
