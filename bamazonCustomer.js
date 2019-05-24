@@ -67,7 +67,7 @@ let csvStream = csv.parse().on("data", function (data) {
     function customerQuestions() {
         connection.query('SELECT product_name FROM products;', function (err, results){
             // Catching errors
-            if (err) throw error;
+            if (err) throw err;
             for (let product of results) {
                 chosenProduct.push(product.product_name);
             }
@@ -98,10 +98,33 @@ let csvStream = csv.parse().on("data", function (data) {
                             return true;
                         }
                     }
-                ])
+                ]).then(function(answers){
+                    connection.query(`SELECT stock_quantity, sold_product price FROM products WHERE sold_product ="${answers.product}" ;`, function(err,results){
+                        if (err) throw err;
+                        var sale = results[0].sold_product;
+                        var previousStock = results[0].stock_quantity;
+                        var remainingStock = previousStock - answers.quantity;
+                        var total = results[0].price * answers.quantity;
+                        if (remainingStock >=0) {
+                            connection.query(`UPDATE products SET stock_quantity = ${remainingStock} WHERE product_name = ${answers.product};`, function(err, results){
+                                if(err) throw err;
+                                console.log(`Your total comes to $${total}.`);
+                                connection.query(`UPDATE products SET sold_product = ${sale + total} WHERE product_name = "${answers.product}";`, function(err, results){
+                                    if (err) throw err;
+
+                                })
+                                connection.end();
+                            })
+                        } else {
+                            console.log("There is not enough items left of that product in stock!");
+                            connection.end();
+                        }
+                    })
+                })
+            } else {
+                connection.end();
             }
-        });
-        
+        });  
     }
 });
 stream.pipe(csvStream);
